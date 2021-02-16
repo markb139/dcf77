@@ -1,0 +1,130 @@
+.program pulse_low
+
+.wrap_target
+pulse_low:
+    set x, 0
+    mov x, !x
+    wait 0 pin 0
+pulse_count:
+    jmp pin pulse_done  
+    jmp x-- pulse_count  
+pulse_done:
+    in x, 32
+    push
+.wrap
+
+
+% c-sdk {
+    #include "hardware/clocks.h"
+static inline void pulse_low_program_init(PIO pio, uint sm, uint offset, uint i_pin) {
+    pio_sm_set_consecutive_pindirs(pio, sm, i_pin, 1, false);
+    pio_gpio_init(pio, i_pin);
+    gpio_pull_up(i_pin);
+    
+    pio_sm_config c = pulse_low_program_get_default_config(offset);
+
+    // Map the state machine's OUT pin group to one pin, namely the `pin`
+    // parameter to this function.
+    
+    sm_config_set_in_pins(&c, i_pin);
+    sm_config_set_jmp_pin(&c, i_pin);
+
+    // Set this pin's GPIO function (connect PIO to the pad)
+    pio_gpio_init(pio, i_pin);
+    
+    // Set the pin direction to output at the PIO
+    pio_sm_set_consecutive_pindirs(pio, sm, i_pin, 1, true);
+    float div = (float) clock_get_hz(clk_sys) / 2000000.0;
+    sm_config_set_clkdiv(&c, div);
+    
+    // Load our configuration, and jump to the start of the program
+    pio_sm_init(pio, sm, offset, &c);
+    
+    // Set the state machine running
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
+
+.program pulse_hi
+
+pulse_hi:
+.wrap_target
+    set x, 0
+    mov x, !x
+    wait 1 pin 0
+pulse_h_loop:
+    jmp PIN pulse_h_count   // 1
+    jmp pulse_h_done        // 1
+pulse_h_count:
+    jmp x-- pulse_h_loop    // 1
+pulse_h_done:
+    in x, 32
+    push
+.wrap
+
+% c-sdk {
+    #include "hardware/clocks.h"
+static inline void pulse_hi_program_init(PIO pio, uint sm, uint offset, uint i_pin) {
+    pio_sm_set_consecutive_pindirs(pio, sm, i_pin, 1, false);
+    pio_gpio_init(pio, i_pin);
+    gpio_pull_up(i_pin);
+    
+    pio_sm_config c = pulse_hi_program_get_default_config(offset);
+
+    // Map the state machine's OUT pin group to one pin, namely the `pin`
+    // parameter to this function.
+    
+    sm_config_set_in_pins(&c, i_pin);
+    sm_config_set_jmp_pin(&c, i_pin);
+
+    // Set this pin's GPIO function (connect PIO to the pad)
+    pio_gpio_init(pio, i_pin);
+    
+    // Set the pin direction to output at the PIO
+    pio_sm_set_consecutive_pindirs(pio, sm, i_pin, 1, true);
+    float div = (float) clock_get_hz(clk_sys) / 2000000.0;
+    sm_config_set_clkdiv(&c, div);
+    
+    // Load our configuration, and jump to the start of the program
+    pio_sm_init(pio, sm, offset, &c);
+    
+    // Set the state machine running
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
+
+.program one_hertz
+
+one_hertz:
+    //wait 0 pin 0
+    set pindirs, 1
+.wrap_target
+    set PINS, 0 
+    set PINS, 1 
+.wrap
+
+% c-sdk {
+    #include "hardware/clocks.h"
+
+static inline void one_hertz_program_init(PIO pio, uint sm, uint offset, uint i_pin, uint o_pin) {
+    pio_gpio_init(pio, o_pin);
+    //pio_sm_set_consecutive_pindirs(pio, sm, i_pin, 1, false);
+    pio_sm_set_consecutive_pindirs(pio, sm, o_pin, 1, true);
+    
+    pio_sm_config c = one_hertz_program_get_default_config(offset);
+
+    sm_config_set_set_pins(&c, o_pin, 1);
+    sm_config_set_out_pins(&c, o_pin, 1);
+    //sm_config_set_in_pins(&c, i_pin);
+
+    float div = (float) clock_get_hz(clk_sys) / 2.0;
+    sm_config_set_clkdiv(&c, div);
+    
+    // Load our configuration, and jump to the start of the program
+    pio_sm_init(pio, sm, offset, &c);
+    
+    // Set the state machine running
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
+
